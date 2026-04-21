@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Reactivate an inactive wallpaper, restoring it to the theme's wallpaper pool.
+# Usage: aether-reactivate-wallpaper <path-to-inactive-wallpaper>
+
+if [[ -z $1 ]]; then
+  echo "Usage: aether-reactivate-wallpaper <path-to-inactive-wallpaper>" >&2
+  exit 1
+fi
+
+WALLPAPER="$1"
+FILENAME="$(basename "$WALLPAPER")"
+THEME_NAME="$(cat "$HOME/.config/omarchy/current/theme.name" 2>/dev/null)"
+
+if [[ -z "$THEME_NAME" ]]; then
+  notify-send "No active theme" -t 2000
+  exit 1
+fi
+
+INACTIVE_DIR="$HOME/.config/omarchy/backgrounds/$THEME_NAME/.inactive"
+USER_BG_DIR="$HOME/.config/omarchy/backgrounds/$THEME_NAME"
+
+if [[ "$WALLPAPER" != "$INACTIVE_DIR/"* ]]; then
+  notify-send "Not an inactive wallpaper" -t 2000
+  exit 1
+fi
+
+if [[ ! -f "$WALLPAPER" ]]; then
+  notify-send "Wallpaper not found" -t 2000
+  exit 1
+fi
+
+if ! mv "$WALLPAPER" "$USER_BG_DIR/$FILENAME"; then
+  notify-send "Failed to reactivate wallpaper" -t 2000
+  exit 1
+fi
+
+notify-send "Reactivated in $THEME_NAME" "$FILENAME" -t 2000

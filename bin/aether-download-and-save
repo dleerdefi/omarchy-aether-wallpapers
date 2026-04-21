@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Download an Aether favorite wallpaper and save it to the current theme.
+# Usage: aether-download-and-save <url> <filename>
+
+if [[ -z $1 || -z $2 ]]; then
+  echo "Usage: aether-download-and-save <url> <filename>" >&2
+  exit 1
+fi
+
+SOURCE="$1"
+FILENAME="$2"
+AETHER_DIR="$HOME/.local/share/aether/wallpapers"
+LOCAL_PATH="$AETHER_DIR/$FILENAME"
+
+if [[ ! -f "$LOCAL_PATH" ]]; then
+  mkdir -p "$AETHER_DIR"
+  notify-send "Downloading..." "$FILENAME" -t 2000
+  if ! curl -sfL --connect-timeout 10 --max-time 120 -o "$LOCAL_PATH" "$SOURCE"; then
+    rm -f "$LOCAL_PATH"
+    notify-send "Download failed" "$FILENAME" -t 3000
+    exit 1
+  fi
+  # Remove empty/corrupt downloads
+  if [[ ! -s "$LOCAL_PATH" ]]; then
+    rm -f "$LOCAL_PATH"
+    notify-send "Download failed" "$FILENAME" -t 3000
+    exit 1
+  fi
+fi
+
+exec aether-save-to-theme "$LOCAL_PATH"

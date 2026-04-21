@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Deactivate or permanently delete a wallpaper from the current Omarchy theme.
+# Usage: aether-remove-from-theme [--delete] <path-to-wallpaper>
+
+DELETE=false
+if [[ "$1" == "--delete" ]]; then
+  DELETE=true
+  shift
+fi
+
+if [[ -z $1 ]]; then
+  echo "Usage: aether-remove-from-theme [--delete] <path-to-wallpaper>" >&2
+  exit 1
+fi
+
+WALLPAPER="$1"
+FILENAME="$(basename "$WALLPAPER")"
+THEME_NAME="$(cat "$HOME/.config/omarchy/current/theme.name" 2>/dev/null)"
+
+if [[ -z "$THEME_NAME" ]]; then
+  notify-send "No active theme" -t 2000
+  exit 1
+fi
+
+USER_BG_DIR="$HOME/.config/omarchy/backgrounds/$THEME_NAME"
+THEME_BG_DIR="$HOME/.local/share/omarchy/themes/$THEME_NAME/backgrounds"
+INACTIVE_DIR="$HOME/.config/omarchy/backgrounds/$THEME_NAME/.inactive"
+
+if [[ "$WALLPAPER" != "$USER_BG_DIR/"* && "$WALLPAPER" != "$THEME_BG_DIR/"* ]]; then
+  notify-send "Not a theme wallpaper" -t 2000
+  exit 1
+fi
+
+if [[ ! -f "$WALLPAPER" ]]; then
+  notify-send "Wallpaper not found" -t 2000
+  exit 1
+fi
+
+# Check if this is the currently active wallpaper
+CURRENT_BG="$(readlink -f "$HOME/.config/omarchy/current/background" 2>/dev/null)"
+IS_ACTIVE=false
+if [[ "$CURRENT_BG" == "$WALLPAPER" ]]; then
+  IS_ACTIVE=true
+fi
+
+if $DELETE; then
+  if ! rm "$WALLPAPER"; then
+    notify-send "Failed to delete wallpaper" -t 2000
+    exit 1
+  fi
+  notify-send "Deleted from $THEME_NAME" "$FILENAME" -t 2000
+else
+  mkdir -p "$INACTIVE_DIR"
+  if ! mv "$WALLPAPER" "$INACTIVE_DIR/$FILENAME"; then
+    notify-send "Failed to deactivate wallpaper" -t 2000
+    exit 1
+  fi
+  notify-send "Deactivated from $THEME_NAME" "$FILENAME" -t 2000
+fi
+
+if $IS_ACTIVE; then
+  aether-cycle-theme 2>/dev/null
+fi

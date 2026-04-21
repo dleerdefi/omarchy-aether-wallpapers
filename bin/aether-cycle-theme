@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Cycle wallpapers for the current Omarchy theme.
+# Sources wallpapers from:
+#   1. ~/.local/share/omarchy/themes/<theme>/backgrounds/  (bundled with theme)
+#   2. ~/.config/omarchy/backgrounds/<theme>/               (user additions)
+
+THEME_NAME=$(cat "$HOME/.config/omarchy/current/theme.name" 2>/dev/null)
+
+if [[ -z "$THEME_NAME" ]]; then
+  notify-send "No active theme" -t 2000
+  exit 1
+fi
+
+THEME_BACKGROUNDS="$HOME/.local/share/omarchy/themes/$THEME_NAME/backgrounds"
+USER_BACKGROUNDS="$HOME/.config/omarchy/backgrounds/$THEME_NAME"
+STATE_FILE="$HOME/.local/state/omarchy/wallpaper-cycle-index"
+
+mkdir -p "$(dirname "$STATE_FILE")"
+
+mapfile -d '' -t WALLPAPERS < <(find -L "$THEME_BACKGROUNDS" "$USER_BACKGROUNDS" -maxdepth 1 -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.webp' \) -print0 2>/dev/null | sort -z)
+TOTAL=${#WALLPAPERS[@]}
+
+if (( TOTAL == 0 )); then
+  notify-send "No wallpapers for $THEME_NAME" -t 3000
+  exit 1
+fi
+
+INDEX=0
+if [[ -f "$STATE_FILE" ]]; then
+  INDEX=$(cat "$STATE_FILE")
+  if ! [[ "$INDEX" =~ ^[0-9]+$ ]] || (( INDEX >= TOTAL )); then
+    INDEX=0
+  fi
+fi
+
+NEXT_INDEX=$(( (INDEX + 1) % TOTAL ))
+NEXT_WALLPAPER="${WALLPAPERS[$NEXT_INDEX]}"
+
+echo "$NEXT_INDEX" > "$STATE_FILE"
+
+omarchy-theme-bg-set "$NEXT_WALLPAPER"
+notify-send "Wallpaper" "$(basename "$NEXT_WALLPAPER") [$THEME_NAME]" -t 1500

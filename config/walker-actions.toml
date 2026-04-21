@@ -1,0 +1,8 @@
+# Add this to your ~/.config/walker/config.toml under [providers.actions]
+# If [providers.actions] doesn't exist yet, add it before any [[providers.prefixes]] lines.
+
+[providers.actions]
+"menus:aetherRemoveFromTheme" = [
+  { action = "activate", label = "deactivate/reactivate", default = true, bind = "Return", after = "Close" },
+  { action = "delete", label = "delete permanently", bind = "ctrl d", after = "Close" },
+]
